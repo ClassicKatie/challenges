@@ -1,4 +1,5 @@
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -19,7 +20,23 @@ class BucketRunner(object):
         print("Created small bucket size {}".format(self.small_bucket.max_volume))
         self.goal = goal
 
-    def execute_suboptimal(self):
+        if self.goal > max(bucket_a_size, bucket_b_size):
+            raise ValueError("Goal volume cannot be larger than the buckets")
+
+    def run(self):
+        # pick the appropriate algorithm for transferring the water
+        # This has _got_ to be related to greatest common divisor
+        # get the greatest common divisor
+        gcd_a_b = math.gcd(self.small_bucket.max_volume, self.big_bucket.max_volume)
+        # There is only a solution if the greatest common divisor of the bucket volumes 
+        # divides the goal volume
+        has_viable_solution = self.goal % gcd_a_b == 0
+        if self.goal % gcd_a_b != 0:
+            raise ValueError("These buckets will never be able to create the desired volume")
+
+        self.small_to_big()
+
+    def small_to_big(self):
         """
         This is the inefficient algorithm given by the prompt
 
@@ -40,18 +57,20 @@ class BucketRunner(object):
                 print("\tSmall bucket is empty. Filling to {} units".format(
                     self.small_bucket.max_volume))
                 self.small_bucket.fill_from_lake()
+                self.iterations += 1
             if self.big_bucket.is_full():
                 print("\tBig bucket is full. Dumping")
                 self.big_bucket.dump()
+                self.iterations += 1
             self.small_bucket.transfer_to_bucket(self.big_bucket)
             self.iterations += 1
             print("Big bucket: {}, small bucket: {}".format(
                 self.big_bucket.current_volume,
                 self.small_bucket.current_volume))
-        print("Goal volume acquired in {} steps".format(self.iterations))
+        print("Goal volume acquired in {} steps\n".format(self.iterations))
 
 
-    def execute_optimal(self):
+    def big_to_small(self):
         """
         This is the efficient algorithm given by the prompt
 
@@ -72,9 +91,11 @@ class BucketRunner(object):
                 print("\tBig bucket is empty. Filling to {} units".format(
                     self.big_bucket.max_volume))
                 self.big_bucket.fill_from_lake()
+                self.iterations += 1
             if self.small_bucket.is_full():
                 print("\tSmall bucket is full. Dumping")
                 self.small_bucket.dump()
+                self.iterations += 1
             self.big_bucket.transfer_to_bucket(self.small_bucket)
             self.iterations += 1
             print("Big bucket: {}, small bucket: {}".format(
@@ -121,24 +142,6 @@ class Bucket(object):
             other_bucket.current_volume += self.current_volume
             self.current_volume = 0
 
-    def fill_from_bucket(self, other_bucket):
-        can_take = self.max_volume - self.current_volume
-        if other_bucket.current_volume > can_take:
-            # If the other bucket has more water in it than
-            # this bucket, then this bucket can only fill to the top
-            # and we will leave some water in the other bucket
-            print("\tbig bucket has more water than small bucket can receive")
-            print("\ttransferring {} to the small bucket".format(can_take))
-            self.current_volume = self.max_volume
-            other_bucket.current_volume -= can_take
-        else:
-            # Otherwise, we will dump all the water from the other bucket into
-            # this one
-            print("\tbig bucket can transfer all its water to small bucket")
-            self.current_volume += other_bucket.current_volume
-            other_bucket.current_volume = 0
-            self.current_volume += other_bucket.current_volume
-
     def dump(self):
         # dump the water from this bucket into the lake
         self.current_volume = 0
@@ -151,5 +154,9 @@ class Bucket(object):
 
 
 if __name__ == '__main__':
-    BucketRunner(3, 5, 4).execute_optimal()
-    BucketRunner(3, 5, 4).execute_suboptimal()
+    BucketRunner(3, 5, 4).run()
+    BucketRunner(1, 10, 2).run()
+    BucketRunner(1, 10, 8).run()
+    BucketRunner(1, 10, 20).run()
+    BucketRunner(2, 10, 3).run()
+    BucketRunner(3, 6, 2).run()
