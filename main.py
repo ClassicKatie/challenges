@@ -14,12 +14,46 @@ class BucketRunner(object):
 
     def __init__(self, bucket_a_size: int, bucket_b_size: int, goal: int):
         self.big_bucket = Bucket(max(bucket_a_size, bucket_b_size))
+        print("Created big bucket size {}".format(self.big_bucket.max_volume))
         self.small_bucket = Bucket(min(bucket_a_size, bucket_b_size))
+        print("Created small bucket size {}".format(self.small_bucket.max_volume))
         self.goal = goal
+
+    def execute_suboptimal(self):
+        """
+        This is the inefficient algorithm given by the prompt
+
+        Fill the small when it is empty,
+        Dump the big when it is full,
+        keep transferring small to big until you solve the problem.
+        """
+
+        print("Buckets are sized {} and {}. Goal is {}".format(
+            self.big_bucket.max_volume, self.small_bucket.max_volume,
+            self.goal))
+
+        while self.big_bucket.current_volume != self.goal and \
+                self.small_bucket.current_volume != self.goal:
+            if self.iterations > 1000:
+                raise Exception("yikes! I think something went wrong")
+            if self.small_bucket.is_empty():
+                print("\tSmall bucket is empty. Filling to {} units".format(
+                    self.small_bucket.max_volume))
+                self.small_bucket.fill_from_lake()
+            if self.big_bucket.is_full():
+                print("\tBig bucket is full. Dumping")
+                self.big_bucket.dump()
+            self.small_bucket.transfer_to_bucket(self.big_bucket)
+            self.iterations += 1
+            print("Big bucket: {}, small bucket: {}".format(
+                self.big_bucket.current_volume,
+                self.small_bucket.current_volume))
+        print("Goal volume acquired in {} steps".format(self.iterations))
+
 
     def execute_optimal(self):
         """
-        This is the inefficient algorithm given by the prompt
+        This is the efficient algorithm given by the prompt
 
         Fill the big when it is empty,
         Dump the small when it is full,
@@ -41,11 +75,12 @@ class BucketRunner(object):
             if self.small_bucket.is_full():
                 print("\tSmall bucket is full. Dumping")
                 self.small_bucket.dump()
-            self.small_bucket.fill_from_bucket(self.big_bucket)
+            self.big_bucket.transfer_to_bucket(self.small_bucket)
             self.iterations += 1
             print("Big bucket: {}, small bucket: {}".format(
                 self.big_bucket.current_volume,
                 self.small_bucket.current_volume))
+
         print("Goal volume acquired in {} steps".format(self.iterations))
 
 
@@ -68,6 +103,23 @@ class Bucket(object):
     def fill_from_lake(self):
         self.current_volume = self.max_volume
         return self.current_volume
+
+    def transfer_to_bucket(self, other_bucket):
+        can_transfer = other_bucket.max_volume - other_bucket.current_volume
+        if self.current_volume > can_transfer:
+            # If this bucket has more water in it than the other bucket,
+            # then the other bucket can only fill to the top, and some
+            # water will remain in this bucket
+            print("\tthis bucket has more water than the other can receive")
+            print("\ttransferring {} to the other bucket".format(can_transfer))
+            other_bucket.current_volume = other_bucket.max_volume
+            self.current_volume -= can_transfer
+        else:
+            # Otherwise we will transfer all the water from this bucket into
+            # the other one
+            print("\ttrasnferring {} to the other bucket".format(self.current_volume))
+            other_bucket.current_volume += self.current_volume
+            self.current_volume = 0
 
     def fill_from_bucket(self, other_bucket):
         can_take = self.max_volume - self.current_volume
@@ -100,3 +152,4 @@ class Bucket(object):
 
 if __name__ == '__main__':
     BucketRunner(3, 5, 4).execute_optimal()
+    BucketRunner(3, 5, 4).execute_suboptimal()
