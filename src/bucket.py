@@ -2,28 +2,28 @@ import logging
 import math
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(filename='debug.log', encoding='utf-8', level=logging.DEBUG)
 
 
 class BucketRunner(object):
     """
     The bucket runner sets up the problem that we have, and then executes to
     find the answer.
-
     """
+
     actions = []
     small_to_big_actions = []
     big_to_small_actions = []
 
     def __init__(self, bucket_a_size: int, bucket_b_size: int, goal: int):
         self.big_bucket = Bucket(max(bucket_a_size, bucket_b_size))
-        print("Created big bucket size {}".format(self.big_bucket.max_volume))
         self.small_bucket = Bucket(min(bucket_a_size, bucket_b_size))
-        print("Created small bucket size {}".format(self.small_bucket.max_volume))
         self.goal = goal
 
         if self.goal > max(bucket_a_size, bucket_b_size):
-            raise ValueError("Goal volume cannot be larger than the buckets")
+            msg = 'Goal volume cannot be larger than the buckets'
+            logger.error(msg)
+            raise ValueError(msg)
 
         # In order to successfully transfer buckets, we need to make sure that
         # the greatest common divisor of the buckets also divides the goal.
@@ -32,7 +32,9 @@ class BucketRunner(object):
         gcd_a_b = math.gcd(self.small_bucket.max_volume, self.big_bucket.max_volume)
         has_viable_solution = self.goal % gcd_a_b == 0
         if self.goal % gcd_a_b != 0:
-            raise ValueError("These buckets will never be able to create the desired volume")
+            msg = 'These buckets will never be able to create the desired volume'
+            logger.error(msg)
+            raise ValueError(msg)
 
     def run(self):
 
@@ -59,32 +61,30 @@ class BucketRunner(object):
         keep transferring small to big until you solve the problem.
         """
 
-        print("Buckets are sized {} and {}. Goal is {}".format(
-            self.big_bucket.max_volume, self.small_bucket.max_volume,
-            self.goal))
-
         self.reset()
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
             action = ''
             if len(self.small_to_big_actions) > 1000:
-                raise Exception("yikes! I think something went wrong")
+                msg = 'exceeded maximum tries'
+                logger.error('DEVELOPER ERROR: ' + msg)
+                raise Exception(msg)
             if self.small_bucket.is_empty():
-                print("\tSmall bucket is empty. Filling to {} units".format(
+                logger.debug("\tSmall bucket is empty. Filling to {} units".format(
                     self.small_bucket.max_volume))
                 self.small_bucket.fill_from_lake()
                 action = 'fill'
             elif self.big_bucket.is_full():
-                print("\tBig bucket is full. Dumping")
+                logger.debug("\tBig bucket is full. Dumping")
                 self.big_bucket.dump()
                 action = 'dump'
             else:
                 self.small_bucket.transfer_to_bucket(self.big_bucket)
                 action = 'transfer'
             step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
-            print(step)
+            logger.debug(step)
             self.small_to_big_actions.append(step)
-        print("Goal volume acquired in {} steps\n".format(len(self.small_to_big_actions)))
+        logger.debug("Goal volume acquired in {} steps\n".format(len(self.small_to_big_actions)))
 
 
     def big_to_small(self):
@@ -96,23 +96,21 @@ class BucketRunner(object):
         keep transferring big to small until you solve the problem.V
         """
 
-        print("Buckets are sized {} and {}. Goal is {}".format(
-            self.big_bucket.max_volume, self.small_bucket.max_volume,
-            self.goal))
-
         self.reset()
         action = ''
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
             if len(self.big_to_small_actions) > 100:
-                raise Exception("yikes! I think something went wrong")
+                msg = 'exceeded maximum tries'
+                logger.error('DEVELOPER ERROR: ' + msg)
+                raise Exception(msg)
             if self.big_bucket.is_empty():
-                print("\tBig bucket is empty. Filling to {} units".format(
+                logger.debug("\tBig bucket is empty. Filling to {} units".format(
                     self.big_bucket.max_volume))
                 self.big_bucket.fill_from_lake()
                 action = 'fill'
             elif self.small_bucket.is_full():
-                print("\tSmall bucket is full. Dumping")
+                logger.debug("\tSmall bucket is full. Dumping")
                 self.small_bucket.dump()
                 action = 'dump'
             else:
@@ -120,10 +118,10 @@ class BucketRunner(object):
                 action = 'transfer'
 
             step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
-            print(step)
+            logger.debug(step)
             self.big_to_small_actions.append(step)
 
-        print("Goal volume acquired in {} steps\n".format(len(self.big_to_small_actions)))
+        logger.debug("Goal volume acquired in {} steps\n".format(len(self.big_to_small_actions)))
 
 
 class Bucket(object):
@@ -152,14 +150,14 @@ class Bucket(object):
             # If this bucket has more water in it than the other bucket,
             # then the other bucket can only fill to the top, and some
             # water will remain in this bucket
-            print("\tthis bucket has more water than the other can receive")
-            print("\ttransferring {} to the other bucket".format(can_transfer))
+            logger.debug("\tthis bucket has more water than the other can receive")
+            logger.debug("\ttransferring {} to the other bucket".format(can_transfer))
             other_bucket.current_volume = other_bucket.max_volume
             self.current_volume -= can_transfer
         else:
             # Otherwise we will transfer all the water from this bucket into
             # the other one
-            print("\ttrasnferring {} to the other bucket".format(self.current_volume))
+            logger.debug("\ttrasnferring {} to the other bucket".format(self.current_volume))
             other_bucket.current_volume += self.current_volume
             self.current_volume = 0
 
