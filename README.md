@@ -41,3 +41,12 @@ hug -f src/api.py -c get_bucket_transfer_steps 5 3  4
 ```
 
 The positional arguments are the size of the first bucket; size of the second bucket; goal volume
+
+### tests
+
+To run the unit tests:
+
+```bash
+python -m unittest tests/test_bucket.py
+python -m unittest tests/test_bucket_runner.py
+```
