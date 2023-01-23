@@ -23,20 +23,23 @@ class BucketRunner(object):
         if self.goal > max(bucket_a_size, bucket_b_size):
             raise ValueError("Goal volume cannot be larger than the buckets")
 
-    def run(self):
-        # pick the appropriate algorithm for transferring the water
-        # This has _got_ to be related to greatest common divisor
-        # get the greatest common divisor
+        # In order to successfully transfer buckets, we need to make sure that
+        # the greatest common divisor of the buckets also divides the goal.
+        # Otherwise, we will only ever transfer multiples of that common
+        # divisor and never reach the goal
         gcd_a_b = math.gcd(self.small_bucket.max_volume, self.big_bucket.max_volume)
-        # There is only a solution if the greatest common divisor of the bucket volumes
-        # divides the goal volume
         has_viable_solution = self.goal % gcd_a_b == 0
         if self.goal % gcd_a_b != 0:
             raise ValueError("These buckets will never be able to create the desired volume")
 
+    def run(self):
+
         # Now that we believe that we _can_ successfully do these transfers,
         # what is the best way to do it?
+        # TODO: determine which strategy we want
+        print('small to big')
         self.small_to_big()
+        print('big to small')
         self.big_to_small()
 
     def reset(self):
