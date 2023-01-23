@@ -11,7 +11,7 @@ class BucketRunner(object):
     find the answer.
 
     """
-    iterations = 0
+    actions = []
 
     def __init__(self, bucket_a_size: int, bucket_b_size: int, goal: int):
         self.big_bucket = Bucket(max(bucket_a_size, bucket_b_size))
@@ -28,13 +28,21 @@ class BucketRunner(object):
         # This has _got_ to be related to greatest common divisor
         # get the greatest common divisor
         gcd_a_b = math.gcd(self.small_bucket.max_volume, self.big_bucket.max_volume)
-        # There is only a solution if the greatest common divisor of the bucket volumes 
+        # There is only a solution if the greatest common divisor of the bucket volumes
         # divides the goal volume
         has_viable_solution = self.goal % gcd_a_b == 0
         if self.goal % gcd_a_b != 0:
             raise ValueError("These buckets will never be able to create the desired volume")
 
+        # Now that we believe that we _can_ successfully do these transfers,
+        # what is the best way to do it?
         self.small_to_big()
+        self.big_to_small()
+
+    def reset(self):
+        self.actions = []
+        self.small_bucket.current_volume = 0
+        self.big_bucket.current_volume = 0
 
     def small_to_big(self):
         """
@@ -49,25 +57,28 @@ class BucketRunner(object):
             self.big_bucket.max_volume, self.small_bucket.max_volume,
             self.goal))
 
+        self.reset()
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
-            if self.iterations > 1000:
+            action = ''
+            if len(self.actions) > 1000:
                 raise Exception("yikes! I think something went wrong")
             if self.small_bucket.is_empty():
                 print("\tSmall bucket is empty. Filling to {} units".format(
                     self.small_bucket.max_volume))
                 self.small_bucket.fill_from_lake()
-                self.iterations += 1
-            if self.big_bucket.is_full():
+                action = 'fill'
+            elif self.big_bucket.is_full():
                 print("\tBig bucket is full. Dumping")
                 self.big_bucket.dump()
-                self.iterations += 1
-            self.small_bucket.transfer_to_bucket(self.big_bucket)
-            self.iterations += 1
-            print("Big bucket: {}, small bucket: {}".format(
-                self.big_bucket.current_volume,
-                self.small_bucket.current_volume))
-        print("Goal volume acquired in {} steps\n".format(self.iterations))
+                action = 'dump'
+            else:
+                self.small_bucket.transfer_to_bucket(self.big_bucket)
+                action = 'transfer'
+            step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
+            print(step)
+            self.actions.append(step)
+        print("Goal volume acquired in {} steps\n".format(len(self.actions)))
 
 
     def big_to_small(self):
@@ -83,26 +94,30 @@ class BucketRunner(object):
             self.big_bucket.max_volume, self.small_bucket.max_volume,
             self.goal))
 
+        self.reset()
+        action = ''
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
-            if self.iterations > 10000:
+            if len(self.actions) > 100:
                 raise Exception("yikes! I think something went wrong")
             if self.big_bucket.is_empty():
                 print("\tBig bucket is empty. Filling to {} units".format(
                     self.big_bucket.max_volume))
                 self.big_bucket.fill_from_lake()
-                self.iterations += 1
-            if self.small_bucket.is_full():
+                action = 'fill'
+            elif self.small_bucket.is_full():
                 print("\tSmall bucket is full. Dumping")
                 self.small_bucket.dump()
-                self.iterations += 1
-            self.big_bucket.transfer_to_bucket(self.small_bucket)
-            self.iterations += 1
-            print("Big bucket: {}, small bucket: {}".format(
-                self.big_bucket.current_volume,
-                self.small_bucket.current_volume))
+                action = 'dump'
+            else:
+                self.big_bucket.transfer_to_bucket(self.small_bucket)
+                action = 'transfer'
 
-        print("Goal volume acquired in {} steps".format(self.iterations))
+            step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
+            print(step)
+            self.actions.append(step)
+
+        print("Goal volume acquired in {} steps\n".format(len(self.actions)))
 
 
 class Bucket(object):
@@ -154,9 +169,9 @@ class Bucket(object):
 
 
 if __name__ == '__main__':
-    BucketRunner(3, 5, 4).run()
-    BucketRunner(1, 10, 2).run()
-    BucketRunner(1, 10, 8).run()
-    BucketRunner(1, 10, 20).run()
-    BucketRunner(2, 10, 3).run()
-    BucketRunner(3, 6, 2).run()
+    BucketRunner(3, 5, 4).run() #big to small
+    BucketRunner(1, 10, 2).run() # small to big
+    BucketRunner(1, 10, 8).run() # big to small
+    #BucketRunner(1, 10, 20).run()
+    #BucketRunner(2, 10, 3).run()
+    #BucketRunner(3, 6, 2).run()
