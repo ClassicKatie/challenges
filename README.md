@@ -5,7 +5,7 @@ Water Buckets is an api that solves the Water Pouring Problem for given bucket s
 ## Installation
 
 ```bash
-git clone <FIXME>
+git clone https://github.com/ClassicKatie/challenges.git
 pip install -r requirements.txt
 ```
 
