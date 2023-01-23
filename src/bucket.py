@@ -166,12 +166,3 @@ class Bucket(object):
 
     def is_empty(self):
         return self.current_volume == 0
-
-
-if __name__ == '__main__':
-    BucketRunner(3, 5, 4).run() #big to small
-    BucketRunner(1, 10, 2).run() # small to big
-    BucketRunner(1, 10, 8).run() # big to small
-    #BucketRunner(1, 10, 20).run()
-    #BucketRunner(2, 10, 3).run()
-    #BucketRunner(3, 6, 2).run()
