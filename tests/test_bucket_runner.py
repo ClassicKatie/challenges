@@ -12,10 +12,9 @@ class Base(unittest.TestCase):
         self.assertEqual(len(runner.actions), 6, 'got right number of actions')
 
     def test_small_to_big(self):
-        #FIXME
         runner = BucketRunner(1, 10, 2)
         runner.run()
-        self.assertEqual(len(runner.actions), 6, 'got right number of actions')
+        self.assertEqual(len(runner.actions), 4, 'got right number of actions')
 
     def test_goal_too_big(self):
         with self.assertRaises(ValueError):

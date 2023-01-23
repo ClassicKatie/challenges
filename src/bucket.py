@@ -12,6 +12,8 @@ class BucketRunner(object):
 
     """
     actions = []
+    small_to_big_actions = []
+    big_to_small_actions = []
 
     def __init__(self, bucket_a_size: int, bucket_b_size: int, goal: int):
         self.big_bucket = Bucket(max(bucket_a_size, bucket_b_size))
@@ -36,11 +38,12 @@ class BucketRunner(object):
 
         # Now that we believe that we _can_ successfully do these transfers,
         # what is the best way to do it?
-        # TODO: determine which strategy we want
-        print('small to big')
         self.small_to_big()
-        print('big to small')
         self.big_to_small()
+        if len(self.small_to_big_actions) < len(self.big_to_small_actions):
+            self.actions = self.small_to_big_actions.copy()
+        else:
+            self.actions = self.big_to_small_actions.copy()
 
     def reset(self):
         self.actions = []
@@ -64,7 +67,7 @@ class BucketRunner(object):
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
             action = ''
-            if len(self.actions) > 1000:
+            if len(self.small_to_big_actions) > 1000:
                 raise Exception("yikes! I think something went wrong")
             if self.small_bucket.is_empty():
                 print("\tSmall bucket is empty. Filling to {} units".format(
@@ -80,8 +83,8 @@ class BucketRunner(object):
                 action = 'transfer'
             step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
             print(step)
-            self.actions.append(step)
-        print("Goal volume acquired in {} steps\n".format(len(self.actions)))
+            self.small_to_big_actions.append(step)
+        print("Goal volume acquired in {} steps\n".format(len(self.small_to_big_actions)))
 
 
     def big_to_small(self):
@@ -101,7 +104,7 @@ class BucketRunner(object):
         action = ''
         while self.big_bucket.current_volume != self.goal and \
                 self.small_bucket.current_volume != self.goal:
-            if len(self.actions) > 100:
+            if len(self.big_to_small_actions) > 100:
                 raise Exception("yikes! I think something went wrong")
             if self.big_bucket.is_empty():
                 print("\tBig bucket is empty. Filling to {} units".format(
@@ -118,9 +121,9 @@ class BucketRunner(object):
 
             step = {'action': action, 'small': self.small_bucket.current_volume, 'large': self.big_bucket.current_volume}
             print(step)
-            self.actions.append(step)
+            self.big_to_small_actions.append(step)
 
-        print("Goal volume acquired in {} steps\n".format(len(self.actions)))
+        print("Goal volume acquired in {} steps\n".format(len(self.big_to_small_actions)))
 
 
 class Bucket(object):
